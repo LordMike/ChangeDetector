@@ -15,18 +15,47 @@ namespace ChangeDetector
         /// Makes a complete snapshot of all registry hives in both the Win64 view (if available) and the Win32 view.
         /// </summary>
         /// <returns>A snapshot</returns>
-        public static LinkedList<SnapshotRegistryItem> MakeRegistrySnapshot()
+        public static SnapshotRegistry MakeRegistrySnapshot()
         {
-            LinkedList<SnapshotRegistryItem> results = new LinkedList<SnapshotRegistryItem>();
+            SnapshotRegistry res = new SnapshotRegistry();
 
-            DoRegistrySnapshotHive(RegistryHive.ClassesRoot, results);
-            DoRegistrySnapshotHive(RegistryHive.CurrentConfig, results);
-            DoRegistrySnapshotHive(RegistryHive.CurrentUser, results);
-            DoRegistrySnapshotHive(RegistryHive.LocalMachine, results);
-            DoRegistrySnapshotHive(RegistryHive.PerformanceData, results);
-            DoRegistrySnapshotHive(RegistryHive.Users, results);
+            SnapshotRegistryPartial partial = new SnapshotRegistryPartial();
+            partial.BasePath = "HKEY_CLASSES_ROOT";
+            partial.Items = DoRegistrySnapshotHive(RegistryHive.ClassesRoot);
 
-            return results;
+            res.PartialSnapshots.Add(partial);
+
+            partial = new SnapshotRegistryPartial();
+            partial.BasePath = "HKEY_CURRENT_CONFIG";
+            partial.Items = DoRegistrySnapshotHive(RegistryHive.CurrentConfig);
+
+            res.PartialSnapshots.Add(partial);
+
+            partial = new SnapshotRegistryPartial();
+            partial.BasePath = "HKEY_CURRENT_USER";
+            partial.Items = DoRegistrySnapshotHive(RegistryHive.CurrentUser);
+
+            res.PartialSnapshots.Add(partial);
+
+            partial = new SnapshotRegistryPartial();
+            partial.BasePath = "HKEY_LOCAL_MACHINE";
+            partial.Items = DoRegistrySnapshotHive(RegistryHive.LocalMachine);
+
+            res.PartialSnapshots.Add(partial);
+
+            partial = new SnapshotRegistryPartial();
+            partial.BasePath = "HKEY_PERFORMANCE_DATA";
+            partial.Items = DoRegistrySnapshotHive(RegistryHive.PerformanceData);
+
+            res.PartialSnapshots.Add(partial);
+
+            partial = new SnapshotRegistryPartial();
+            partial.BasePath = "HKEY_USERS";
+            partial.Items = DoRegistrySnapshotHive(RegistryHive.Users);
+
+            res.PartialSnapshots.Add(partial);
+
+            return res;
         }
 
         /// <summary>
@@ -34,8 +63,10 @@ namespace ChangeDetector
         /// </summary>
         /// <param name="hive">The hive to make a snapshot of.</param>
         /// <param name="results">The result object to fill out</param>
-        private static void DoRegistrySnapshotHive(RegistryHive hive, LinkedList<SnapshotRegistryItem> results)
+        private static LinkedList<SnapshotRegistryItem> DoRegistrySnapshotHive(RegistryHive hive)
         {
+            LinkedList<SnapshotRegistryItem> results = new LinkedList<SnapshotRegistryItem>();
+
             if (_isWin64)
             {
                 using (RegistryKey currentProjectedKey = RegistryKey.OpenBaseKey(hive, RegistryView.Registry64))
@@ -48,6 +79,8 @@ namespace ChangeDetector
             {
                 DoRegistrySnapshotKey(currentProjectedKey, RegistryView.Registry32, results);
             }
+
+            return results;
         }
 
         /// <summary>
@@ -64,7 +97,7 @@ namespace ChangeDetector
             foreach (string key in valueKeys)
             {
                 SnapshotRegistryValue item = new SnapshotRegistryValue();
-                item.FullPath = currentKey.Name + "\\" + key;
+                item.FullPath = RemoveHive(currentKey.Name + "\\" + key);
                 item.RegistryView = view;
 
                 try
@@ -88,7 +121,7 @@ namespace ChangeDetector
             foreach (string subKey in subKeys)
             {
                 SnapshotRegistryKey item = new SnapshotRegistryKey();
-                item.FullPath = currentKey.Name + "\\" + subKey;
+                item.FullPath = RemoveHive(currentKey.Name + "\\" + subKey);
                 item.RegistryView = view;
                 item.WasReadable = false;
 
@@ -149,6 +182,11 @@ namespace ChangeDetector
                 default:
                     throw new ArgumentOutOfRangeException("kind");
             }
+        }
+
+        private static string RemoveHive(string pathName)
+        {
+            return pathName.Substring(pathName.IndexOf(@"\") + 1);
         }
     }
 }

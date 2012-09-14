@@ -84,8 +84,10 @@
     <Compile Include="SnapshotFileInfo.cs" />
     <Compile Include="SnapshotFilesystem.cs" />
     <Compile Include="SnapshotFilesystemItem.cs" />
+    <Compile Include="SnapshotRegistry.cs" />
     <Compile Include="SnapshotRegistryItem.cs" />
     <Compile Include="SnapshotRegistryKey.cs" />
+    <Compile Include="SnapshotRegistryPartial.cs" />
     <Compile Include="SnapshotRegistryValue.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

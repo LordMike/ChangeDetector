@@ -19,8 +19,7 @@ namespace TestApplication
                 oldSnapshot = DeSerializeSingleObject<SnapshotFilesystem>(tmpFile);
             }
 
-            SnapshotFilesystem snapshot = DetectorUtilitiesFS.MakeFsSnapshot(new DirectoryInfo(@"C:\Users"));
-
+            SnapshotFilesystem snapshot = DetectorUtilitiesFS.MakeFsSnapshot(new DirectoryInfo(@"C:\Program Files\Microsoft Visual Studio 10.0"));
             SerializeSingleObject(tmpFile, snapshot);
 
             Console.WriteLine(snapshot.Items.Count + " items");
@@ -49,40 +48,50 @@ namespace TestApplication
                 }
             }
 
-            //ICollection<SnapshotRegistryItem> oldSnapshot = null;
-            //if (File.Exists(tmpFile))
-            //{
-            //    oldSnapshot = DeSerializeObject<SnapshotRegistryItem>(tmpFile);
-            //}
+            SnapshotRegistry oldRegSnapshot = null;
+            if (File.Exists(tmpFile))
+            {
+                oldRegSnapshot = DeSerializeSingleObject<SnapshotRegistry>(tmpFile);
+            }
 
-            //LinkedList<SnapshotRegistryItem> snapshot = DetectorUtilitiesRegistry.MakeRegistrySnapshot();
+            SnapshotRegistry regSnapshot = DetectorUtilitiesRegistry.MakeRegistrySnapshot();
+            SerializeSingleObject(tmpFile, regSnapshot);
 
-            //SerializeObject(tmpFile, snapshot);
+            Console.WriteLine(regSnapshot.PartialSnapshots.Sum(s => s.Items.Count) + " items");
 
-            //Console.WriteLine(snapshot.Count + " items");
+            if (oldRegSnapshot != null)
+            {
+                // Iterate each hive
+                foreach (SnapshotRegistryPartial registrySnapshot in oldRegSnapshot.PartialSnapshots)
+                {
+                    SnapshotRegistryPartial corresponding = regSnapshot.PartialSnapshots.Single(s => s.BasePath == registrySnapshot.BasePath);
 
-            //if (oldSnapshot != null)
-            //{
-            //    List<Difference<SnapshotRegistryItem>> differences = DetectorUtilities.GetDifferences(oldSnapshot, snapshot);
-            //    Console.WriteLine("Differences ({0}): ", differences.Count);
+                    Console.WriteLine("RegistryHive ({0} vs. {1} items): {2}", registrySnapshot.Items.Count, corresponding.Items.Count, registrySnapshot.BasePath);
 
-            //    foreach (Difference<SnapshotRegistryItem> difference in differences)
-            //    {
-            //        Console.WriteLine("Difference ({0}):", difference.DifferenceType);
-            //        Console.WriteLine("  Path: {0}", (difference.Original ?? difference.New).FullPath);
+                    List<Difference<SnapshotRegistryItem>> differences = DetectorUtilities.GetDifferences(registrySnapshot.Items, corresponding.Items);
+                    Console.WriteLine("Differences ({0}): ", differences.Count);
 
-            //        WriteDiffToConsole(difference.Original, difference.New, "RegistryView", filesystem => filesystem.RegistryView);
-            //        WriteDiffToConsole(difference.Original, difference.New, "Was Readable", filesystem => filesystem.WasReadable);
+                    foreach (Difference<SnapshotRegistryItem> difference in differences)
+                    {
+                        Console.WriteLine("Difference ({0}):", difference.DifferenceType);
+                        Console.WriteLine("  Path: {0}", (difference.Original ?? difference.New).FullPath);
 
-            //        if (difference.Original is SnapshotRegistryValue || difference.New is SnapshotRegistryValue)
-            //        {
-            //            WriteDiffToConsole(difference.Original as SnapshotRegistryValue, difference.New as SnapshotRegistryValue, "RegistryKeyType", filesystem => filesystem.RegistryKeyType);
-            //            WriteDiffToConsole(difference.Original as SnapshotRegistryValue, difference.New as SnapshotRegistryValue, "Value", filesystem => filesystem.Value);
-            //        }
+                        WriteDiffToConsole(difference.Original, difference.New, "RegistryView", filesystem => filesystem.RegistryView);
+                        WriteDiffToConsole(difference.Original, difference.New, "Was Readable", filesystem => filesystem.WasReadable);
 
-            //        Console.WriteLine();
-            //    }
-            //}
+                        if (difference.Original is SnapshotRegistryValue || difference.New is SnapshotRegistryValue)
+                        {
+                            WriteDiffToConsole(difference.Original as SnapshotRegistryValue, difference.New as SnapshotRegistryValue, "RegistryKeyType", filesystem => filesystem.RegistryKeyType);
+                            WriteDiffToConsole(difference.Original as SnapshotRegistryValue, difference.New as SnapshotRegistryValue, "Value", filesystem => filesystem.Value);
+                        }
+
+                        Console.WriteLine();
+                    }
+
+                    Console.WriteLine();
+                    Console.WriteLine();
+                }
+            }
 
             Console.WriteLine("Done");
             Console.ReadLine();
