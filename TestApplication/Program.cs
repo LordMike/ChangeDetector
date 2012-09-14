@@ -13,13 +13,49 @@ namespace TestApplication
         {
             string tmpFile = Path.GetFullPath("tmp");
 
-            //LinkedList<SnapshotFilesystemItem> oldSnapshot = null;
+            SnapshotFilesystem oldSnapshot = null;
+            if (File.Exists(tmpFile))
+            {
+                oldSnapshot = DeSerializeSingleObject<SnapshotFilesystem>(tmpFile);
+            }
+
+            SnapshotFilesystem snapshot = DetectorUtilitiesFS.MakeFsSnapshot(new DirectoryInfo(@"C:\Users"));
+
+            SerializeSingleObject(tmpFile, snapshot);
+
+            Console.WriteLine(snapshot.Items.Count + " items");
+
+            if (oldSnapshot != null)
+            {
+                List<Difference<SnapshotFilesystemItem>> differences = DetectorUtilities.GetDifferences(oldSnapshot.Items, snapshot.Items);
+                Console.WriteLine("Differences ({0}): ", differences.Count);
+
+                foreach (Difference<SnapshotFilesystemItem> difference in differences)
+                {
+                    Console.WriteLine("Difference ({0}):", difference.DifferenceType);
+                    Console.WriteLine("  Path: {0}", (difference.Original ?? difference.New).RelativePath);
+
+                    WriteDiffToConsole(difference.Original, difference.New, "LastAccess", filesystem => filesystem.LastAccess);
+                    WriteDiffToConsole(difference.Original, difference.New, "LastModified", filesystem => filesystem.LastModified);
+                    WriteDiffToConsole(difference.Original, difference.New, "Attributes", filesystem => filesystem.Attributes);
+                    WriteDiffToConsole(difference.Original, difference.New, "Was Readable", filesystem => filesystem.WasReadable);
+
+                    if (difference.Original is SnapshotFileInfo || difference.New is SnapshotFileInfo)
+                    {
+                        WriteDiffToConsole(difference.Original as SnapshotFileInfo, difference.New as SnapshotFileInfo, "Hash", filesystem => filesystem.Hash);
+                    }
+
+                    Console.WriteLine();
+                }
+            }
+
+            //ICollection<SnapshotRegistryItem> oldSnapshot = null;
             //if (File.Exists(tmpFile))
             //{
-            //    oldSnapshot = DeSerializeObject<LinkedList<SnapshotFilesystemItem>>(tmpFile);
+            //    oldSnapshot = DeSerializeObject<SnapshotRegistryItem>(tmpFile);
             //}
 
-            //LinkedList<SnapshotFilesystemItem> snapshot = DetectorUtilitiesFS.MakeFsSnapshot(new DirectoryInfo(@"C:\Program Files\Microsoft Visual Studio 10.0"));
+            //LinkedList<SnapshotRegistryItem> snapshot = DetectorUtilitiesRegistry.MakeRegistrySnapshot();
 
             //SerializeObject(tmpFile, snapshot);
 
@@ -27,62 +63,26 @@ namespace TestApplication
 
             //if (oldSnapshot != null)
             //{
-            //    List<Difference<SnapshotFilesystemItem>> differences = DetectorUtilities.GetDifferences(oldSnapshot, snapshot);
+            //    List<Difference<SnapshotRegistryItem>> differences = DetectorUtilities.GetDifferences(oldSnapshot, snapshot);
             //    Console.WriteLine("Differences ({0}): ", differences.Count);
 
-            //    foreach (Difference<SnapshotFilesystemItem> difference in differences)
+            //    foreach (Difference<SnapshotRegistryItem> difference in differences)
             //    {
             //        Console.WriteLine("Difference ({0}):", difference.DifferenceType);
-            //        Console.WriteLine("  Path: {0}", (difference.Original ?? difference.New).FullName);
+            //        Console.WriteLine("  Path: {0}", (difference.Original ?? difference.New).FullPath);
 
-            //        WriteDiffToConsole(difference.Original, difference.New, "LastAccess", filesystem => filesystem.LastAccess);
-            //        WriteDiffToConsole(difference.Original, difference.New, "LastModified", filesystem => filesystem.LastModified);
-            //        WriteDiffToConsole(difference.Original, difference.New, "Attributes", filesystem => filesystem.Attributes);
+            //        WriteDiffToConsole(difference.Original, difference.New, "RegistryView", filesystem => filesystem.RegistryView);
             //        WriteDiffToConsole(difference.Original, difference.New, "Was Readable", filesystem => filesystem.WasReadable);
 
-            //        if (difference.Original is SnapshotFileInfo || difference.New is SnapshotFileInfo)
+            //        if (difference.Original is SnapshotRegistryValue || difference.New is SnapshotRegistryValue)
             //        {
-            //            WriteDiffToConsole(difference.Original as SnapshotFileInfo, difference.New as SnapshotFileInfo, "Hash", filesystem => filesystem.Hash);
+            //            WriteDiffToConsole(difference.Original as SnapshotRegistryValue, difference.New as SnapshotRegistryValue, "RegistryKeyType", filesystem => filesystem.RegistryKeyType);
+            //            WriteDiffToConsole(difference.Original as SnapshotRegistryValue, difference.New as SnapshotRegistryValue, "Value", filesystem => filesystem.Value);
             //        }
 
             //        Console.WriteLine();
             //    }
             //}
-
-            ICollection<SnapshotRegistryItem> oldSnapshot = null;
-            if (File.Exists(tmpFile))
-            {
-                oldSnapshot = DeSerializeObject<SnapshotRegistryItem>(tmpFile);
-            }
-
-            LinkedList<SnapshotRegistryItem> snapshot = DetectorUtilitiesRegistry.MakeRegistrySnapshot();
-
-            SerializeObject(tmpFile, snapshot);
-
-            Console.WriteLine(snapshot.Count + " items");
-
-            if (oldSnapshot != null)
-            {
-                List<Difference<SnapshotRegistryItem>> differences = DetectorUtilities.GetDifferences(oldSnapshot, snapshot);
-                Console.WriteLine("Differences ({0}): ", differences.Count);
-
-                foreach (Difference<SnapshotRegistryItem> difference in differences)
-                {
-                    Console.WriteLine("Difference ({0}):", difference.DifferenceType);
-                    Console.WriteLine("  Path: {0}", (difference.Original ?? difference.New).FullPath);
-
-                    WriteDiffToConsole(difference.Original, difference.New, "RegistryView", filesystem => filesystem.RegistryView);
-                    WriteDiffToConsole(difference.Original, difference.New, "Was Readable", filesystem => filesystem.WasReadable);
-
-                    if (difference.Original is SnapshotRegistryValue || difference.New is SnapshotRegistryValue)
-                    {
-                        WriteDiffToConsole(difference.Original as SnapshotRegistryValue, difference.New as SnapshotRegistryValue, "RegistryKeyType", filesystem => filesystem.RegistryKeyType);
-                        WriteDiffToConsole(difference.Original as SnapshotRegistryValue, difference.New as SnapshotRegistryValue, "Value", filesystem => filesystem.Value);
-                    }
-
-                    Console.WriteLine();
-                }
-            }
 
             Console.WriteLine("Done");
             Console.ReadLine();
@@ -94,6 +94,24 @@ namespace TestApplication
             string newString = newItem != null && itemSelector(newItem) != null ? itemSelector(newItem).ToString() : "(none)";
 
             Console.WriteLine("  {3}: {0} -> {1} {2}", originalString, newString, newString != originalString ? "(modified)" : "", itemName);
+        }
+
+        public static void SerializeSingleObject<T>(string filename, T obj)
+        {
+            using (FileStream fileStream = File.OpenWrite(filename))
+            {
+                BinaryFormatter formatter = new BinaryFormatter();
+                formatter.Serialize(fileStream, obj);
+            }
+        }
+
+        public static T DeSerializeSingleObject<T>(string filename)
+        {
+            using (FileStream fileStream = File.OpenRead(filename))
+            {
+                BinaryFormatter formatter = new BinaryFormatter();
+                return (T)formatter.Deserialize(fileStream);
+            }
         }
 
         public static void SerializeObject<T>(string filename, ICollection<T> obj)

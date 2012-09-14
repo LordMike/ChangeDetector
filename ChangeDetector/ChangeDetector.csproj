@@ -41,7 +41,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DetectorUtilities.cs" />
+    <Compile Include="DetectorUtilitiesFS.cs" />
+    <Compile Include="DetectorUtilitiesRegistry.cs" />
+    <Compile Include="Difference.cs" />
+    <Compile Include="DifferenceType.cs" />
+    <Compile Include="IKeyItem.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SnapshotDirectoryInfo.cs" />
+    <Compile Include="SnapshotFileInfo.cs" />
+    <Compile Include="SnapshotFilesystem.cs" />
+    <Compile Include="SnapshotFilesystemItem.cs" />
+    <Compile Include="SnapshotRegistryItem.cs" />
+    <Compile Include="SnapshotRegistryKey.cs" />
+    <Compile Include="SnapshotRegistryValue.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
