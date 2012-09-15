@@ -19,7 +19,7 @@ namespace TestApplication
                 oldSnapshot = DeSerializeSingleObject<SnapshotFilesystem>(tmpFile);
             }
 
-            SnapshotFilesystem snapshot = DetectorUtilitiesFS.MakeFsSnapshot(new DirectoryInfo(@"C:\Program Files\Microsoft Visual Studio 10.0"));
+            SnapshotFilesystem snapshot = DetectorUtilitiesFS.MakeFsSnapshot(new DirectoryInfo(@"C:\Windows\System32"));
             SerializeSingleObject(tmpFile, snapshot);
 
             Console.WriteLine(snapshot.Items.Count + " items");
