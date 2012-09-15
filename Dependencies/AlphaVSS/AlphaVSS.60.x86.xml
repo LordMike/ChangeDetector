@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        "AlphaVSS.Platform"
+    </assembly>
+    <members>
+        <member name="T:Alphaleonis.Win32.Vss.VssImplementation">
+            <summary>
+	Represents a platform specific implementation of the global methods in the VSS API.
+</summary>
+            <remarks>
+	An instance of this class can either be created directly, or by using the factory methods
+	in <see cref="T:Alphaleonis.Win32.Vss.VssUtils" /> to obtain an instance of the <see cref="T:Alphaleonis.Win32.Vss.IVssImplementation" /> 
+    interface for the current platform.
+</remarks>
+        </member>
+        <member name="M:Alphaleonis.Win32.Vss.VssAsyncResult.Finalize">
+            <summary>Releases resources used by the <see cref="T:Alphaleonis.Win32.Vss.VssAsyncResult" /> object.</summary>
+        </member>
+        <member name="M:Alphaleonis.Win32.Vss.VssAsyncResult.Dispose">
+            <summary>Destructor.</summary>
+        </member>
+    </members>
+</doc>

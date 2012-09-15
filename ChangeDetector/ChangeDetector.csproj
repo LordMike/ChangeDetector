@@ -64,6 +64,12 @@
     <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AlphaFS">
+      <HintPath>..\Dependencies\AlphaFS\AlphaFS.dll</HintPath>
+    </Reference>
+    <Reference Include="AlphaVSS.Common">
+      <HintPath>..\Dependencies\AlphaVSS\AlphaVSS.Common.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -89,6 +95,28 @@
     <Compile Include="SnapshotRegistryKey.cs" />
     <Compile Include="SnapshotRegistryPartial.cs" />
     <Compile Include="SnapshotRegistryValue.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\Dependencies\AlphaVSS\AlphaVSS.51.x86.dll">
+      <Link>AlphaVSS.51.x86.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Dependencies\AlphaVSS\AlphaVSS.52.x64.dll">
+      <Link>AlphaVSS.52.x64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Dependencies\AlphaVSS\AlphaVSS.52.x86.dll">
+      <Link>AlphaVSS.52.x86.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Dependencies\AlphaVSS\AlphaVSS.60.x64.dll">
+      <Link>AlphaVSS.60.x64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Dependencies\AlphaVSS\AlphaVSS.60.x86.dll">
+      <Link>AlphaVSS.60.x86.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

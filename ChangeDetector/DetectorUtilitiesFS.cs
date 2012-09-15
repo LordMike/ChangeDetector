@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Security.Cryptography;
+using Alphaleonis.Win32.Vss;
+using Alphaleonis.Win32.Filesystem;
 
 namespace ChangeDetector
 {
@@ -17,23 +18,66 @@ namespace ChangeDetector
         /// </summary>
         /// <param name="baseDirectory">The directory to start in.</param>
         /// <returns>A file system snapshot</returns>
-        public static SnapshotFilesystem MakeFsSnapshot(DirectoryInfo baseDirectory)
+        public static SnapshotFilesystem MakeFsSnapshot(System.IO.DirectoryInfo baseDirectory)
         {
-            if (!baseDirectory.Exists)
+            DirectoryInfo baseDir = new DirectoryInfo(baseDirectory.FullName);
+
+            if (!baseDir.Exists)
                 throw new ArgumentException("Base directory doesn't exist");
 
             SnapshotFilesystem res = new SnapshotFilesystem();
 
-            if (!baseDirectory.FullName.EndsWith(Path.DirectorySeparatorChar.ToString()) && !baseDirectory.FullName.EndsWith(Path.AltDirectorySeparatorChar.ToString()))
+            if (!baseDir.FullName.EndsWith(Path.DirectorySeparatorChar) && !baseDir.FullName.EndsWith(Path.AltDirectorySeparatorChar))
             {
                 // Add ending slash to get a uniform output
-                baseDirectory = new DirectoryInfo(baseDirectory.FullName + Path.DirectorySeparatorChar);
+                baseDir = new DirectoryInfo(baseDir.FullName + Path.DirectorySeparatorChar);
             }
 
-            res.BasePath = baseDirectory.FullName;
+            res.BasePath = baseDir.FullName;
             res.Items = new LinkedList<SnapshotFilesystemItem>();
 
-            DoFsSnapshot(baseDirectory, baseDirectory, res.Items);
+            // Make VSS
+            // Sequence of calls: http://us.generation-nt.com/answer/volume-shadow-copy-backupcomplete-vss-e-bad-state-help-29094302.html
+            IVssImplementation vssImplementation = VssUtils.LoadImplementation();
+            IVssBackupComponents backupComponents = vssImplementation.CreateVssBackupComponents();
+
+            backupComponents.InitializeForBackup(null);
+            backupComponents.SetContext(VssSnapshotContext.Backup);
+
+            backupComponents.SetBackupState(false, false, VssBackupType.Copy, false);
+            backupComponents.GatherWriterMetadata();
+
+            try
+            {
+                Guid snapshotSetGuid = backupComponents.StartSnapshotSet();
+                Guid backupVolumeGuid = backupComponents.AddToSnapshotSet(baseDir.Root.FullName);
+
+                backupComponents.PrepareForBackup();
+                backupComponents.DoSnapshotSet();
+
+                VssSnapshotProperties properties = backupComponents.GetSnapshotProperties(backupVolumeGuid);
+
+                DirectoryInfo shadowCopyBase = new DirectoryInfo(Path.Combine(properties.SnapshotDeviceObject, Path.GetDirectoryNameWithoutRoot(baseDir.FullName)));
+
+                if (!shadowCopyBase.FullName.EndsWith(Path.DirectorySeparatorChar) && !shadowCopyBase.FullName.EndsWith(Path.AltDirectorySeparatorChar))
+                {
+                    // Add ending slash to get a uniform output
+                    shadowCopyBase = new DirectoryInfo(shadowCopyBase.FullName + Path.DirectorySeparatorChar);
+                }
+
+                // Do stuff
+                DoFsSnapshot(shadowCopyBase, shadowCopyBase, res.Items);
+
+                // Delete snapshot
+                backupComponents.BackupComplete();
+                backupComponents.DeleteSnapshotSet(snapshotSetGuid, false);
+            }
+            catch (Exception)
+            {
+                backupComponents.AbortBackup();
+            }
+
+            //DoFsSnapshot(baseDirectory, baseDirectory, res.Items);
 
             return res;
         }
@@ -55,11 +99,11 @@ namespace ChangeDetector
             {
                 current.LastAccess = currentDirectory.LastAccessTimeUtc;
                 current.LastModified = currentDirectory.LastWriteTimeUtc;
-                current.Attributes = currentDirectory.Attributes;
+                current.Attributes = (System.IO.FileAttributes)currentDirectory.Attributes;
 
                 current.WasReadable = true;
             }
-            catch (IOException)
+            catch (System.IO.IOException)
             {
                 // Couldn't read details
                 current.WasReadable = false;
@@ -74,16 +118,16 @@ namespace ChangeDetector
                 {
                     // Single file
                     SnapshotFileInfo file = new SnapshotFileInfo();
-                    current.RelativePath = fileInfo.FullName.Substring(baseDirectory.FullName.Length);
+                    file.RelativePath = fileInfo.FullName.Substring(baseDirectory.FullName.Length);
 
                     try
                     {
                         file.LastAccess = fileInfo.LastAccessTimeUtc;
                         file.LastModified = fileInfo.LastWriteTimeUtc;
-                        file.Attributes = fileInfo.Attributes;
+                        file.Attributes = (System.IO.FileAttributes)fileInfo.Attributes;
 
                         // Make hash
-                        using (FileStream fileStream = fileInfo.OpenRead())
+                        using (System.IO.FileStream fileStream = fileInfo.OpenRead())
                         {
                             byte[] hash = _md5.ComputeHash(fileStream);
                             file.Hash = BitConverter.ToString(hash).Replace("-", "");
@@ -100,7 +144,7 @@ namespace ChangeDetector
                     results.AddLast(file);
                 }
             }
-            catch (IOException)
+            catch (System.IO.IOException)
             {
                 // Couldn't read files
                 current.WasReadable = false;
@@ -121,7 +165,7 @@ namespace ChangeDetector
                     DoFsSnapshot(baseDirectory, directoryInfo, results);
                 }
             }
-            catch (IOException)
+            catch (System.IO.IOException)
             {
                 // Couldn't read directories
                 current.WasReadable = false;
